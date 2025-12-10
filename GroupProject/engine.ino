@@ -112,7 +112,6 @@ void positionStep1();
 void positionStep2();
 void liftMove(int target);
 void endMove(int target);
-void stopMotion();
 void stopCar();
 void runCarForward(int speed);
 void runCarBackward(int speed);
@@ -214,7 +213,6 @@ void checkExternalCommand()
         }
         else if (currentState >= S_ARM_LIFT_STEP1 && currentState <= S_ARM_LOWER_STEP1)
         {
-            stopMotion();
             currentState = S_IDLE;
         }
         else
@@ -295,6 +293,7 @@ void checkExternalCommand()
 void initializePosition()
 {
     liftMove(LIFT_INIT);
+    delay(500);
     endMove(END_INIT);
     delay(DELAY_TIME);
 }
@@ -302,6 +301,7 @@ void initializePosition()
 void positionStep1()
 {
     liftMove(LIFT_STEP1);
+    delay(500);
     endMove(END_STEP1);
     delay(DELAY_TIME);
 }
@@ -343,10 +343,6 @@ void endMove(int target)
         endRight.write(interp);
         delay(END_STEP_DELAY);
     }
-}
-
-void stopMotion()
-{
 }
 
 void stopCar()
