@@ -4,12 +4,12 @@
  * An individual file used only to test L298N functions.
  */
 /* Define pins */
-#define ENL_PIN 6
-#define INLF_PIN 5
-#define INLB_PIN 4
-#define ENR_PIN 3
-#define INRF_PIN 2
-#define INRB_PIN 12
+#define ENA_PIN 6
+#define IN1_PIN 5
+#define IN2_PIN 4
+#define ENB_PIN 3
+#define IN3_PIN 2
+#define IN4_PIN 12
 
 /* Define car speed */
 #define CAR_SPEED 200
@@ -33,22 +33,22 @@ void setup()
 
 void setCarPins()
 {
-    pinMode(ENL_PIN, OUTPUT);
-    pinMode(INLF_PIN, OUTPUT);
-    pinMode(INLB_PIN, OUTPUT);
-    pinMode(ENR_PIN, OUTPUT);
-    pinMode(INRF_PIN, OUTPUT);
-    pinMode(INRB_PIN, OUTPUT);
+    pinMode(ENA_PIN, OUTPUT);
+    pinMode(IN1_PIN, OUTPUT);
+    pinMode(IN2_PIN, OUTPUT);
+    pinMode(ENB_PIN, OUTPUT);
+    pinMode(IN3_PIN, OUTPUT);
+    pinMode(IN4_PIN, OUTPUT);
 }
 
 void stopCar()
 {
-    analogWrite(ENL_PIN, 0);
-    analogWrite(ENR_PIN, 0);
-    digitalWrite(INLF_PIN, LOW);
-    digitalWrite(INLB_PIN, LOW);
-    digitalWrite(INRF_PIN, LOW);
-    digitalWrite(INRB_PIN, LOW);
+    analogWrite(ENA_PIN, 0);
+    analogWrite(ENB_PIN, 0);
+    digitalWrite(IN1_PIN, LOW);
+    digitalWrite(IN2_PIN, LOW);
+    digitalWrite(IN3_PIN, LOW);
+    digitalWrite(IN4_PIN, LOW);
 }
 
 void printHelp()
@@ -95,20 +95,20 @@ void loop()
 
 void runCarForward(int speed)
 {
-    digitalWrite(INLF_PIN, HIGH);
-    digitalWrite(INLB_PIN, LOW);
-    digitalWrite(INRF_PIN, HIGH);
-    digitalWrite(INRB_PIN, LOW);
-    analogWrite(ENL_PIN, speed);
-    analogWrite(ENR_PIN, speed);
+    digitalWrite(IN1_PIN, HIGH);
+    digitalWrite(IN2_PIN, LOW);
+    digitalWrite(IN3_PIN, HIGH);
+    digitalWrite(IN4_PIN, LOW);
+    analogWrite(ENA_PIN, speed);
+    analogWrite(ENB_PIN, speed);
 }
 
 void runCarBackward(int speed)
 {
-    digitalWrite(INLF_PIN, LOW);
-    digitalWrite(INLB_PIN, HIGH);
-    digitalWrite(INRF_PIN, LOW);
-    digitalWrite(INRB_PIN, HIGH);
-    analogWrite(ENL_PIN, speed);
-    analogWrite(ENR_PIN, speed);
+    digitalWrite(IN1_PIN, LOW);
+    digitalWrite(IN2_PIN, HIGH);
+    digitalWrite(IN3_PIN, LOW);
+    digitalWrite(IN4_PIN, HIGH);
+    analogWrite(ENA_PIN, speed);
+    analogWrite(ENB_PIN, speed);
 }
