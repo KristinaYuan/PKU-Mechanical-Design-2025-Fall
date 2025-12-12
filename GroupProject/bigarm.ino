@@ -2,6 +2,14 @@
  * bigarm.ino - Big-arm mechanical arm controller
  *
  * An individual file used only to test big-arm functions.
+ *
+ * Updated 12/11/2025:
+ * - Split from engine.ino to separate the big-arm control logic.
+ *
+ * Updated 12/12/2025:
+ *  - Added a state machine to avoid infinite loops of arm movement.
+ *  - Adjusted the command handling logic accordingly.
+ *  - Used more intelligent position functions to fix several bugs.
  */
 #include <Servo.h>
 
@@ -22,6 +30,19 @@ Servo armLift; // servo at bottom the the arms
 #define MECH_LIFT_INIT 0
 #define MECH_LIFT_STEP1 45
 #define MECH_LIFT_STEP2 37
+
+enum ProgramState
+{
+    S_INIT, // initializing state
+    S_ARM_LIFT_STEP1,
+    S_ARM_LIFT_STEP2,
+    S_ARM_LOWER_STEP2,
+    S_ARM_LOWER_STEP1,
+    S_IDLE1, // idle state at retracted position
+    S_IDLE2  // idle state at stretched position
+};
+
+ProgramState currentState = S_INIT;
 
 /* Calculate servo angles */
 inline int mechLiftToServo(int mechAngle)
@@ -57,13 +78,38 @@ void setup()
     printHelp();
 
     setServoPins();
-
-    initializePosition();
 }
 
 void loop()
 {
     checkExternalCommand();
+
+    switch (currentState)
+    {
+    case S_INIT:
+        initializePosition();
+        currentState = S_IDLE1;
+        break;
+    case S_ARM_LIFT_STEP1:
+        positionStep1();
+        currentState = S_ARM_LIFT_STEP2;
+        break;
+    case S_ARM_LIFT_STEP2:
+        positionStep2();
+        currentState = S_IDLE2;
+        break;
+    case S_ARM_LOWER_STEP2:
+        positionStep2();
+        currentState = S_ARM_LOWER_STEP1;
+        break;
+    case S_ARM_LOWER_STEP1:
+        positionStep1();
+        currentState = S_IDLE1;
+        break;
+    case S_IDLE1:
+    case S_IDLE2:
+        break;
+    }
 }
 
 void printHelp()
@@ -94,19 +140,31 @@ void checkExternalCommand()
     case 'R':
     case 'r':
         Serial.println("命令: 重启 (Restart)");
-        initializePosition();
+        currentState = S_INIT;
         break;
     case 'L':
     case 'l':
         Serial.println("命令: 展开大臂 (Launch Big Arm)");
-        positionStep1();
-        positionStep2();
+        if (currentState == S_IDLE1)
+        {
+            currentState = S_ARM_LIFT_STEP1;
+        }
+        else
+        {
+            Serial.println("此状态下命令不可使用，请重新输入。");
+        }
         break;
     case 'W':
     case 'w':
         Serial.println("命令: 收回大臂 (Withdraw Big Arm)");
-        positionStep2();
-        positionStep1();
+        if (currentState == S_IDLE2)
+        {
+            currentState = S_ARM_LOWER_STEP2;
+        }
+        else
+        {
+            Serial.println("此状态下命令不可使用，请重新输入。");
+        }
         break;
     default:
         Serial.println("未知命令，请重新输入 (R/L/W)。");
@@ -116,19 +174,52 @@ void checkExternalCommand()
 
 void initializePosition()
 {
+    int current = armLift.read();
+    if (current == LIFT_INIT)
+    {
+        return;
+    }
+    if (current == LIFT_STEP1)
+    {
+        liftMove(LIFT_INIT);
+        delay(DELAY_TIME);
+        return;
+    }
+    if (current == LIFT_STEP2)
+    {
+        liftMove(LIFT_STEP1);
+        delay(500);
+        liftMove(LIFT_INIT);
+        delay(DELAY_TIME);
+        return;
+    }
     liftMove(LIFT_INIT);
     delay(DELAY_TIME);
 }
 
 void positionStep1()
 {
-    liftMove(LIFT_STEP1);
+    if (armLift.read() == LIFT_INIT)
+    {
+        liftMove(LIFT_STEP1);
+    }
+    else
+    {
+        liftMove(LIFT_INIT);
+    }
     delay(DELAY_TIME);
 }
 
 void positionStep2()
 {
-    liftMove(LIFT_STEP2);
+    if (armLift.read() == LIFT_STEP1)
+    {
+        liftMove(LIFT_STEP2);
+    }
+    else
+    {
+        liftMove(LIFT_STEP1);
+    }
     delay(DELAY_TIME);
 }
 
