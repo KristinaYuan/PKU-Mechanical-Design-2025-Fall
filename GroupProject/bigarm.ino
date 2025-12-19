@@ -10,6 +10,9 @@
  *  - Added a state machine to avoid infinite loops of arm movement.
  *  - Adjusted the command handling logic accordingly.
  *  - Used more intelligent position functions to fix several bugs.
+ *
+ * Updated 12/19/2025:
+ *  - Adjusted to the new angles and arm lengths.
  */
 #include <Servo.h>
 
@@ -20,7 +23,7 @@ Servo armLift; // servo at bottom the the arms
 #define ARM_LIFT_PIN 9 // PWB pin for main lifting servo
 
 /* Define mechanical parameters */
-#define BIG_ARM_LENGTH 25.0 // big arm length (centimeter)
+#define BIG_ARM_LENGTH 15.0 // big arm length (centimeter)
 
 /* Define gear ratio */
 #define ARM_GEAR_RATIO 2.0 // servo:bigarm = 2:1 (decelerate)
@@ -29,7 +32,7 @@ Servo armLift; // servo at bottom the the arms
 /* Big arm's relative angle to horizontal level */
 #define MECH_LIFT_INIT 0
 #define MECH_LIFT_STEP1 45
-#define MECH_LIFT_STEP2 37
+#define MECH_LIFT_STEP2 20
 
 enum ProgramState
 {
