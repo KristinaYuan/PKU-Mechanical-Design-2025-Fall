@@ -26,7 +26,8 @@
  *
  * Updated 12/19/2025:
  *  - Altered the state machine logic to avoid unwanted signal interference.
- *  -
+ *  - Adjusted to the new angles and arm lengths.
+ *  - Implemented the printHelp function.
  */
 #include <Servo.h>
 
@@ -41,8 +42,8 @@ Servo endRight; // servo in the right arm
 #define END_RIGHT_PIN 11 // PWB pin for right end servo
 
 /* Define mechanical parameters */
-#define BIG_ARM_LENGTH 25.0   // big arm length (centimeter)
-#define SMALL_ARM_LENGTH 17.0 // small arm length
+#define BIG_ARM_LENGTH 15.0  // big arm length (centimeter)
+#define SMALL_ARM_LENGTH 8.0 // small arm length
 
 /* Define gear ratio */
 #define ARM_GEAR_RATIO 2.0 // servo:bigarm = 2:1 (decelerate)
@@ -52,12 +53,12 @@ Servo endRight; // servo in the right arm
 /* Big arm's relative angle to horizontal level */
 #define MECH_LIFT_INIT 0
 #define MECH_LIFT_STEP1 45
-#define MECH_LIFT_STEP2 37
+#define MECH_LIFT_STEP2 20
 
 /* Small arm's relative angle to big arm (inside) */
 #define MECH_END_INIT 0
-#define MECH_END_STEP1 127
-#define MECH_END_STEP2 127
+#define MECH_END_STEP1 110
+#define MECH_END_STEP2 110
 
 /* Calculate servo angles */
 inline int mechLiftToServo(int mechAngle)
@@ -94,15 +95,15 @@ inline int mechEndToServo(int mechAngle)
 /* Define system states */
 enum ProgramState
 {
-    S_INIT,
-    S_CAR_STOPPED,
-    S_CAR_FORWARD,
-    S_CAR_BACKWARD,
-    S_ARM_LIFT_STEP1,
-    S_ARM_LIFT_STEP2,
-    S_ARM_LOWER_STEP2,
-    S_ARM_LOWER_STEP1,
-    S_IDLE
+    S_INIT,            // arms initializing
+    S_CAR_STOPPED,     // car stopped with arms retracted or stretched
+    S_CAR_FORWARD,     // car moving forward
+    S_CAR_BACKWARD,    // car moving backward
+    S_ARM_LIFT_STEP1,  // arm lifting to middle position
+    S_ARM_LIFT_STEP2,  // arm lifting to stretched position
+    S_ARM_LOWER_STEP2, // arm lowering to middle position
+    S_ARM_LOWER_STEP1, // arm lowering to retracted position
+    S_IDLE             // idle state
 };
 
 ProgramState currentState = S_INIT;
@@ -132,8 +133,6 @@ void setup()
 
     setServoPins();
     setCarPins();
-
-    stopCar();
 }
 
 void loop()
@@ -183,6 +182,15 @@ void loop()
 
 void printHelp()
 {
+    Serial.println("机械臂电梯控制程序已启动。");
+    Serial.println("------------------------------------------");
+    Serial.println("输入 'L' -> 机械臂展开 (0->45->20)");
+    Serial.println("输入 'W' -> 机械臂收回 (20->45->0)");
+    Serial.println("输入 'R' -> 重启 (返回 0度初始位置)");
+    Serial.println("输入 'S' -> 停止 (停止当前动作)");
+    Serial.println("输入 'F' -> 前进 (小车前进)");
+    Serial.println("输入 'B' -> 后退 (小车后退)");
+    Serial.println("------------------------------------------");
 }
 
 void setServoPins()
@@ -214,7 +222,6 @@ void checkExternalCommand()
         Serial.println("命令: 停止 (Stop)");
         if (currentState == S_CAR_FORWARD || currentState == S_CAR_BACKWARD)
         {
-            stopCar();
             currentState = S_CAR_STOPPED;
         }
         else if (currentState >= S_ARM_LIFT_STEP1 && currentState <= S_ARM_LOWER_STEP1)
@@ -231,16 +238,14 @@ void checkExternalCommand()
     case 'r':
         Serial.println("命令: 重启 (Restart)");
         stopCar();
-        initializePosition();
         currentState = S_INIT;
         break;
 
     case 'F':
     case 'f':
-        if (currentState == S_INIT || currentState == S_CAR_STOPPED)
+        if (currentState == S_CAR_STOPPED)
         {
             Serial.println("命令: 前进 (Forward)");
-            runCarForward(CAR_SPEED);
             currentState = S_CAR_FORWARD;
         }
         else
@@ -251,10 +256,9 @@ void checkExternalCommand()
 
     case 'B':
     case 'b':
-        if (currentState == S_INIT || currentState == S_CAR_STOPPED)
+        if (currentState == S_CAR_STOPPED)
         {
             Serial.println("命令: 后退 (Backward)");
-            runCarBackward(CAR_SPEED);
             currentState = S_CAR_BACKWARD;
         }
         else
@@ -265,7 +269,7 @@ void checkExternalCommand()
 
     case 'L':
     case 'l':
-        if (currentState <= S_CAR_FORWARD)
+        if (currentState == S_CAR_FORWARD || currentState == S_CAR_STOPPED)
         {
             Serial.println("命令: 展开 (Launch)");
             stopCar();
@@ -282,6 +286,7 @@ void checkExternalCommand()
         if (currentState == S_CAR_BACKWARD || currentState == S_CAR_STOPPED)
         {
             Serial.println("命令: 收回 (Withdraw)");
+            stopCar();
             currentState = S_ARM_LOWER_STEP2;
         }
         else
